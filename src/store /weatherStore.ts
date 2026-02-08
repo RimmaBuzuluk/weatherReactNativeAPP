@@ -1,11 +1,16 @@
 import { create } from "zustand";
 import { WeatherData } from "../types/weatherTypes";
-import { fetchWeatherByCity, fetchWeatherByCoords } from "../api/weatherApi";
+import {
+  CityNotFoundError,
+  fetchWeatherByCity,
+  fetchWeatherByCoords,
+} from "../api/weatherApi";
 import {
   getWeatherFromCache,
   saveWeatherToCache,
 } from "../services/cacheService";
 import { getUserCoords } from "../api/location";
+import { isOnline } from "../services/network";
 
 interface WeatherState {
   homeWeather: WeatherData | null;
@@ -23,30 +28,39 @@ export const useWeatherStore = create<WeatherState>((set) => ({
   error: null,
 
   loadWeatherByLocation: async () => {
-    try {
-      set({ loading: true, error: null });
+    set({ loading: true, error: null });
 
+    if (!(await isOnline())) {
+      const cachedHome = await getWeatherFromCache();
+
+      if (cachedHome) {
+        set({ homeWeather: cachedHome, loading: false });
+      } else {
+        set({ error: "OFFLINE", loading: false });
+      }
+      return;
+    }
+
+    try {
       const { lat, lon } = await getUserCoords();
       const weather = await fetchWeatherByCoords(lat, lon);
 
       set({ homeWeather: weather, loading: false });
-
       await saveWeatherToCache(weather);
-    } catch (e) {
-      console.log("Cannot load weather from network, trying cache...", e);
-
-      const cachedHome = await getWeatherFromCache();
-      if (cachedHome) {
-        set({ homeWeather: cachedHome, loading: false });
-      } else {
-        set({ error: "Cannot load weather", loading: false });
-      }
+    } catch {
+      set({ error: "LOCATION_ERROR", loading: false });
     }
   },
 
   loadWeatherByCity: async (city) => {
+    set({ loading: true, error: null });
+
+    if (!(await isOnline())) {
+      set({ error: "OFFLINE", loading: false });
+      return;
+    }
+
     try {
-      set({ loading: true, error: null });
       const weather = await fetchWeatherByCity(city);
 
       set({
@@ -54,7 +68,11 @@ export const useWeatherStore = create<WeatherState>((set) => ({
         loading: false,
       });
     } catch (e) {
-      set({ error: "Cannot load weather", loading: false });
+      if (e instanceof CityNotFoundError) {
+        set({ error: "CITY_NOT_FOUND", loading: false });
+      } else {
+        set({ error: "NETWORK_ERROR", loading: false });
+      }
     }
   },
 }));
