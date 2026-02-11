@@ -1,13 +1,11 @@
 import * as Keychain from "react-native-keychain";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 const SERVICE = "weather-app-api-key";
-const STORAGE_KEY = "WEATHER_API_KEY";
+const API_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
 
 export const saveApiKey = async (apiKey: string) => {
   if (Platform.OS === "web") {
-    await AsyncStorage.setItem(STORAGE_KEY, apiKey);
     return;
   }
 
@@ -18,7 +16,7 @@ export const saveApiKey = async (apiKey: string) => {
 
 export const getApiKey = async (): Promise<string | null> => {
   if (Platform.OS === "web") {
-    return AsyncStorage.getItem(STORAGE_KEY);
+    return API_KEY;
   }
 
   const credentials = await Keychain.getGenericPassword({
