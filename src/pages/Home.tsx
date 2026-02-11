@@ -13,5 +13,9 @@ export default function HomeScreen() {
   if (loading) return <WeatherCardSkeleton />;
   if (!homeWeather) return null;
 
-  return <WeatherCard {...homeWeather} />;
+  return (
+    <>
+      <WeatherCard {...homeWeather} />
+    </>
+  );
 }

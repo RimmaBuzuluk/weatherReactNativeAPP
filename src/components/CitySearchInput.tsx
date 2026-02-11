@@ -8,14 +8,23 @@ type Props = {
 export const CitySearchInput = ({ onSearch }: Props) => {
   const [value, setValue] = useState("");
 
+  const handleSubmit = () => {
+    const trimmed = value.trim();
+
+    if (!trimmed) return;
+
+    onSearch(trimmed);
+    setValue(trimmed);
+  };
+
   return (
     <View style={styles.container}>
       <TextInput
         placeholder="Enter city..."
         placeholderTextColor="#888"
         value={value}
-        onChangeText={setValue}
-        onSubmitEditing={() => onSearch(value)}
+        onChangeText={(text) => setValue(text.replace(/^\s+/, ""))}
+        onSubmitEditing={handleSubmit}
         style={styles.input}
         returnKeyType="search"
       />
